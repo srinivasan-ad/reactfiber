@@ -1,101 +1,134 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Points, PointMaterial, OrbitControls, useGLTF } from '@react-three/drei';
+import * as random from 'maath/random/dist/maath-random.esm';
+import Over from './components/Over';
+
+export default function Page() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+    <div className="relative overflow-hidden bg-black w-[100%] h-[100%]">
+      <Canvas camera={{ position: [0, 0, 1] }}>
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[5, 5, 5]} intensity={4} />
+        <Stars />
+        <Astronaut />
+      </Canvas>
+      <Over />
     </div>
   );
 }
+
+function Stars() {
+  const starsRef = useRef();
+  const [sphere] = useState(() =>
+    random.inSphere(new Float32Array(5000), { radius: 1.5 })
+  );
+
+  useFrame((state, delta) => {
+    starsRef.current.rotation.x -= delta / 10;
+    starsRef.current.rotation.y -= delta / 15;
+  });
+
+  return (
+    <>
+      <Points
+        ref={starsRef}
+        positions={sphere}
+        stride={3}
+        frustumCulled={false}
+      >
+        <PointMaterial
+          transparent
+          color="#ffa0e0"
+          size={0.005}
+          sizeAttenuation={true}
+          depthWrite={false}
+        />
+      </Points>
+      <OrbitControls 
+        target={[0, 0, 0]} 
+        enableZoom={true} 
+        minDistance={1} 
+        maxDistance={10} 
+      />
+    </>
+  );
+}
+
+function Astronaut() {
+  const astronautRef = useRef();
+  const { scene } = useGLTF('/mercenary_astronaut/scene.gltf');
+  const speedX = 0.0055;
+  const speedY = 0.002;
+  // const bounceFactor = 0.5;
+
+  const velocityX = useRef(speedX);
+  const velocityY = useRef(speedY);
+
+  useFrame((state, delta) => {
+    if (astronautRef.current) {
+      astronautRef.current.rotation.x -= delta / 30;
+      astronautRef.current.rotation.y -= delta / 35;
+
+      astronautRef.current.position.x += velocityX.current;
+      astronautRef.current.position.y += velocityY.current;
+
+      const astronautWidth = 0.5;
+      const rightEdge = (window.innerWidth / 550) - astronautWidth;
+      const leftEdge = -rightEdge;
+
+      const astronautHeight = 0.5;
+      const topEdge = (window.innerHeight / 550) - astronautHeight;
+      const bottomEdge = -topEdge;
+
+      if (astronautRef.current.position.x > rightEdge || astronautRef.current.position.x < leftEdge) {
+        velocityX.current = -velocityX.current;
+      }
+
+      if (astronautRef.current.position.y > topEdge || astronautRef.current.position.y < bottomEdge) {
+        velocityY.current = -velocityY.current;
+      }
+    }
+  });
+
+  return (
+    <>
+    <primitive
+      ref={astronautRef}
+      object={scene}
+ 
+      position={[0, -0.5, -2]}
+      scale={0.5}
+    />
+    <OrbitControls 
+    target={[0, 0, 0]} 
+    enableZoom={true} 
+    minDistance={1} 
+    maxDistance={10} 
+  />
+    </>
+  );
+}
+
+
+// Astronaut Component (inside Canvas)
+// function Astronaut() {
+//   const ref = useRef();
+//   const { scene } = useGLTF('/astronaut/scene.gltf'); // Adjust the path to your model
+
+//   // Animation for the astronaut (floating/rotating)
+//   useFrame(() => {
+//     ref.current.rotation.y += 0.01; // Simple rotation effect
+//   });
+
+//   return (
+//     <primitive
+//       ref={ref}
+//       object={scene}
+//       position={[0, -0.5, -2]} // Adjust position as needed
+//       scale={0.5} // Adjust scale as needed
+//     />
+//   );
+// }
